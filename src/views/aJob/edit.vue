@@ -10,7 +10,7 @@
         <el-input v-model="form.addr" />
       </el-form-item>
 
-      <el-form-item label="薪资范围">
+      <el-form-item label="薪资范围" :rules="[ { required: true, message: '必填的' } ]">
         <el-row :gutter="10">
           <el-col :span="10">
             <el-input-number v-model="form.salaryMin" placeholder="最小值" />
@@ -20,6 +20,20 @@
           </el-col>
           <el-col :span="10">
             <el-input-number v-model="form.salaryMax" placeholder="最大值" />
+          </el-col>
+        </el-row>
+      </el-form-item>
+
+      <el-form-item label="年龄范围" :rules="[ { required: true, message: '必填的' } ]">
+        <el-row :gutter="10">
+          <el-col :span="10">
+            <el-input-number v-model="form.ageMax" placeholder="最小值" />
+          </el-col>
+          <el-col :span="2" style="text-align: center;">
+            <span>到</span>
+          </el-col>
+          <el-col :span="10">
+            <el-input-number v-model="form.ageMin" placeholder="最大值" />
           </el-col>
         </el-row>
       </el-form-item>
@@ -42,7 +56,7 @@
             v-for="area in areas"
             :key="area.id"
             :label="area.areaName"
-            :value="area.areaName"
+            :value="area"
           />
         </el-select>
       </el-form-item>
@@ -87,7 +101,8 @@ export default {
         salaryMax: null,
         features: '',
         corporate: '',
-        jobDescription: ''
+        jobDescription: '',
+        corporatePics: []
       },
       areas: [],
       selectedArea: null,
@@ -118,7 +133,8 @@ export default {
     },
     handleAreaChange(value) {
       this.selectedArea = value
-      this.form.areaName = value
+      this.form.areaName = value.areaName
+      this.form.areaId = value.id
       console.log('Selected Area ID:', value)
     },
     show(job) {
@@ -128,6 +144,7 @@ export default {
         Object.keys(this.form).forEach(key => {
           if (key !== 'id') this.form[key] = null
         })
+        this.fileList = []
       }
       this.dialogVisible = true
     },
@@ -159,13 +176,15 @@ export default {
             method: 'post',
             data: formData,
             headers: {
-              'Content-Type': 'multipart/form-data',
-              token: '-lV_6dtEI'
+              'Content-Type': 'multipart/form-data'
             }
           }).then(response => {
             console.log(response)
             if (response.errCode === 0) {
+              this.form.corporatePics = this.form.corporatePics ? this.form.corporatePics + ',' + response.data : response.data
+              console.log('+ corporatePics', this.form.corporatePics)
               this.fileList.push({ name: file.name })
+              console.log('fileList', this.fileList)
               this.$message.success('上传成功')
             } else {
               this.$message.error('上传失败')
@@ -178,7 +197,16 @@ export default {
       })
     },
     handleRemove(file, fileList) {
+      if (this.form.corporatePics) {
+        this.form.corporatePics = this.removeFilenameFromString(this.form.corporatePics, file.name)
+      }
+      console.log('- corporatePics', this.form.corporatePics)
       console.log(file, fileList)
+    },
+    removeFilenameFromString(inputString, filename) {
+      // 使用正则表达式匹配包含文件名的部分和其后的逗号
+      const regex = new RegExp(`[^,]*${filename},?`, 'g')
+      return inputString.replace(regex, '').replace(/^,|,$/g, '')
     }
   }
 }
