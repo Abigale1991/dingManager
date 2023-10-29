@@ -3,6 +3,7 @@
     <!-- <p>{{ userRole }}</p> -->
     <el-button v-if="userRole === 'ADMIN'" @click="createAccount">创建新用户</el-button>
     <el-table :data="accounts" style="width: 100%">
+      <el-table-column prop="id" label="id" />
       <el-table-column prop="name" label="账号name" />
       <el-table-column prop="user" label="使用人user" />
       <el-table-column prop="type" label="账号类型type" />
@@ -13,8 +14,16 @@
         </template>
       </el-table-column>
     </el-table>
-
-    <edit ref="accountDialog" @refresh="fetchAccounts" />
+    <el-pagination
+      :current-page="currentPage"
+      :page-sizes="[5, 10, 20, 50]"
+      :page-size="pageSize"
+      layout="total, sizes, prev, pager, next, jumper"
+      :total="totalItems"
+      @size-change="handleSizeChange"
+      @current-change="handleCurrentChange"
+    />
+    <edit ref="accountDialog" @refresh="fetchData" />
   </div>
 </template>
 
@@ -28,7 +37,10 @@ export default {
   },
   data() {
     return {
-      accounts: []
+      accounts: [],
+      totalItems: 0, // 总数据数量
+      currentPage: 1, // 当前页
+      pageSize: 10 // 每页显示的数据数量
     }
   },
   computed: {
@@ -38,15 +50,32 @@ export default {
     }
   },
   created() {
-    this.fetchAccounts()
+    this.fetchData()
   },
   methods: {
-
-    async fetchAccounts() {
-      const response = await request({ url: '/account_list', method: 'get', params: { page_num: 1, page_size: 100 }})
+    handleSizeChange(val) {
+      this.pageSize = val
+      this.currentPage = 1
+      this.fetchData()
+    },
+    handleCurrentChange(val) {
+      this.currentPage = val
+      this.fetchData()
+    },
+    async fetchData() {
+      console.log('fetchData')
+      const response = await request({
+        url: '/account_list',
+        method: 'get',
+        params: {
+          page_num: this.currentPage,
+          page_size: this.pageSize
+        }
+      })
       console.log(response)
       if (response.errCode === 0) {
-        this.accounts = response.data
+        this.accounts = response.data.rows
+        this.totalItems = response.data.totalCount
       }
     },
     createAccount() {
@@ -59,7 +88,7 @@ export default {
       try {
         await request({ url: '/delete_account', method: 'post', data: { id }})
         this.$message.success('删除成功')
-        this.fetchAccounts()
+        this.fetchData()
       } catch {
         this.$message.error('删除失败')
       }

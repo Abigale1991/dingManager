@@ -29,6 +29,7 @@
 
     <!-- 合伙人管理表格 -->
     <el-table :data="partners" border>
+      <el-table-column prop="id" label="id" />
       <el-table-column prop="openId" label="OpenId" />
       <el-table-column prop="name" label="合伙人姓名" />
       <el-table-column prop="tel" label="电话" />
@@ -99,8 +100,8 @@ export default {
         method: 'get',
         params
       }).then(response => {
-        this.partners = response.data
-        this.totalItems = response.data.length
+        this.partners = response.data.rows
+        this.totalItems = response.data.totalCount
         this.loading = false
       })
     },
@@ -113,7 +114,18 @@ export default {
       this.fetchData()
     },
     deletePartner(row) {
-      // TODO: 实现删除合伙人逻辑
+      request({
+        url: 'partner_exited',
+        method: 'post',
+        data: { id: row.id }
+      }).then(response => {
+        if (response.data.success) {
+          this.$message.success('删除成功')
+          this.fetchData()
+        } else {
+          this.$message.error('删除失败')
+        }
+      })
     },
     setTrainInfo() {
       request({
@@ -130,6 +142,7 @@ export default {
         } else {
           this.$message.error('培训信息设置失败')
         }
+        this.dialogVisible = false
       })
     }
   }

@@ -3,6 +3,7 @@
     <el-button v-if="userRole === 'ADMIN'" @click="create">新建</el-button>
 
     <el-table :data="list" style="width: 100%">
+      <el-table-column prop="id" label="id" />
       <el-table-column prop="name" label="门店名称" />
       <el-table-column prop="addr" label="地址" />
       <el-table-column prop="areaId" label="区域" />
@@ -14,13 +15,22 @@
       <el-table-column prop="updateTime" label="updateTime" />
       <el-table-column label="操作">
         <template slot-scope="scope">
-          <el-button @click="edit(scope.row)">编辑</el-button>
-          <el-button v-if="userRole === 'ADMIN'" type="danger" @click="delete(scope.row.id)">删除</el-button>
+          <!-- <el-button @click="edit(scope.row)">编辑</el-button> -->
+          <el-button v-if="userRole === 'ADMIN'" type="danger" @click="deleteRow(scope.row.id)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
 
     <edit ref="edit" @refresh="fetch" />
+    <el-pagination
+      :current-page="currentPage"
+      :page-sizes="[2, 5, 10, 20]"
+      :page-size="pageSize"
+      layout="total, sizes, prev, pager, next, jumper"
+      :total="totalItems"
+      @size-change="handleSizeChange"
+      @current-change="handleCurrentChange"
+    />
   </div>
 </template>
 
@@ -34,7 +44,10 @@ export default {
   },
   data() {
     return {
-      list: []
+      list: [],
+      currentPage: 1,
+      pageSize: 10,
+      totalItems: 0
     }
   },
   computed: {
@@ -49,10 +62,12 @@ export default {
   methods: {
 
     async fetch() {
-      const response = await request({ url: '/recruitment_shop_list', method: 'get', params: { page_num: 1, page_size: 100, areaId: 1 }})
+      console.log('fetch')
+      const response = await request({ url: '/recruitment_shop_list', method: 'get', params: { page_num: this.currentPage, page_size: this.pageSize, areaId: 1 }})
       console.log(response)
       if (response.errCode === 0) {
-        this.list = response.data
+        this.list = response.data.rows
+        this.totalItems = response.data.totalCount
       }
     },
     create() {
@@ -60,6 +75,25 @@ export default {
     },
     edit(shop) {
       this.$refs.edit.show(shop)
+    },
+    async deleteRow(id) {
+      console.log('del', id)
+      const response = await request({ url: '/delete_recruitment_shop', method: 'post', data: { id: id }})
+      if (response.data.success) {
+        this.$message.success('成功')
+        this.fetch()
+      } else {
+        this.$message.error('失败')
+      }
+    },
+    handleSizeChange(val) {
+      this.pageSize = val
+      this.currentPage = 1
+      this.fetch()
+    },
+    handleCurrentChange(val) {
+      this.currentPage = val
+      this.fetch()
     }
   }
 }

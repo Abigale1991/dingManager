@@ -1,27 +1,26 @@
 <template>
   <div>
+    <el-select v-model="statusFilter" style="margin-right: 10px;" @change="filterByStatus">
+      <el-option
+        v-for="status in statusOptions"
+        :key="status"
+        :label="status"
+        :value="status"
+      />
+    </el-select>
+    <el-button icon="el-icon-search" @click="fetchData">搜索</el-button>
+
     <!-- 岗位预约列表表格 -->
     <el-table ref="myTable" v-loading="loading" :data="jobBookings" border>
+      <el-table-column prop="id" label="id" />
       <el-table-column prop="jobName" label="岗位名称" />
       <el-table-column prop="corporate" label="公司" />
       <el-table-column prop="name" label="预约人姓名" />
       <el-table-column prop="tel" label="电话" />
       <el-table-column prop="workerOpenId" label="员工id" />
       <el-table-column prop="refereeOpenId" label="推荐人id" />
-      <el-table-column prop="statusStr" label="在职状态str" />
-      <el-table-column label="在职状态">
-        <template slot="header">
-          <!-- <input v-model="statusFilter"> -->
-          <el-select v-model="statusFilter" @change="filterByStatus">
-            <el-option
-              v-for="status in statusOptions"
-              :key="status"
-              :label="status"
-              :value="status"
-            />
-          </el-select>
-        </template>
 
+      <el-table-column label="在职状态">
         <template slot-scope="scope">
           <el-select v-model="scope.row.statusStr" @change="handleStatusChange(scope.row)">
             <el-option
@@ -42,11 +41,13 @@
       </el-table-column>
     </el-table>
 
-    <!-- 分页 -->
     <el-pagination
       :current-page="currentPage"
+      :page-sizes="[5, 10, 20, 50]"
       :page-size="pageSize"
+      layout="total, sizes, prev, pager, next, jumper"
       :total="totalItems"
+      @size-change="handleSizeChange"
       @current-change="handleCurrentChange"
     />
   </div>
@@ -73,44 +74,64 @@ export default {
         '待入职',
         '已入职'
       ],
-      currentPage: 1,
-      pageSize: 100,
-      totalItems: 0
+      o: {
+        '取消': '-1',
+        '已离职': '0',
+        '待跟踪': '1',
+        '已预约未回访': '2',
+        '电话已回访未面试': '3',
+        '电话已回访已邀面试': '4',
+        '面试成功': '5',
+        '面试失败': '6',
+        '待入职': '7',
+        '已入职': '8'
+      },
+      totalItems: 0, // 总数据数量
+      currentPage: 1, // 当前页
+      pageSize: 10 // 每页显示的数据数量
     }
   },
   mounted() {
     this.fetchData()
   },
   methods: {
-    // 从服务器获取数据
     fetchData() {
       this.loading = true
+      const params = {
+        page_num: this.currentPage,
+        page_size: this.pageSize,
+        status: this.statusFilter ? this.o[this.statusFilter] : 0
+      }
       request({
         url: 'worker_list',
         method: 'get',
-        params: { page_num: this.currentPage, page_size: this.pageSize, status: this.statusFilter }
+        params
       }).then(response => {
-        this.jobBookings = response.data
-        this.totalItems = response.data.length
+        this.jobBookings = response.data.rows
+        this.totalItems = response.data.totalCount
         this.loading = false
       })
     },
 
-    // 更改当前页
+    handleSizeChange(val) {
+      this.pageSize = val
+      this.currentPage = 1
+      this.fetchData()
+    },
     handleCurrentChange(val) {
       this.currentPage = val
       this.fetchData()
     },
-    // 更改在职状态
 
     handleStatusChange(row) {
       request({
         url: 'set_worker_status',
         method: 'post',
-        data: { id: row.id, status: row.status }
+        data: { id: row.id, status: this.o[row.statusStr] }
       }).then(response => {
         if (response.data.success) {
           this.$message.success('状态更新成功')
+          this.fetchData()
         } else {
           this.$message.error('状态更新失败')
         }

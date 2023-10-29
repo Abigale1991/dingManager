@@ -4,11 +4,17 @@
       <el-form-item label="账号" prop="account">
         <el-input v-model="form.name" />
       </el-form-item>
-      <el-form-item label="密码" prop="passwd">
-        <el-input v-model="form.passwd" type="passwd" />
+      <el-form-item label="密码" prop="passwd" :rules="[ { required: true, message: '必填' } ]">
+        <el-input v-model="form.passwd" type="password" />
       </el-form-item>
       <el-form-item label="使用人" prop="user">
         <el-input v-model="form.user" />
+      </el-form-item>
+      <el-form-item label="类型" prop="user">
+        <el-select v-model="form.type">
+          <el-option label="ADMIN" :value="0" />
+          <el-option label="NORMAL" :value="1" />
+        </el-select>
       </el-form-item>
     </el-form>
     <div slot="footer" class="dialog-footer">
@@ -29,7 +35,8 @@ export default {
         id: null,
         name: '', // 账号
         passwd: '', // 密码
-        user: '' // 使用人
+        user: '', // 使用人
+        type: '' // 0是admin 1是普通用户
       }
     }
   },
@@ -45,11 +52,13 @@ export default {
         this.form.name = account.name
         this.form.user = account.user
         this.form.passwd = account.passwd
+        this.form.type = account.type === 'ADMIN' ? 0 : 1
       } else {
         this.form.id = null
         this.form.name = ''
         this.form.user = ''
         this.form.passwd = ''
+        this.form.type = ''
       }
       this.dialogVisible = true
     },
